@@ -1,0 +1,51 @@
+
+service: mandrillaxe
+
+provider:
+  name: aws
+  runtime: python2.7
+  region: ap-southeast-2
+  memorySize: 128
+  # cfLogs: true
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+      Resource:
+        - Fn::Join:
+            - ""
+            - - "arn:aws:dynamodb:${self:provider.region}:"
+              - Ref: AWS::AccountId
+              - ":table/Config"
+
+package:
+  exclude:
+    - .npmignore
+    - event.json
+
+functions:
+  sendEmail:
+    handler: handler.send_email
+    events:
+      - http:
+          method: post
+          path: send/{uuid}
+          cors: true
+
+resources:
+  Resources:
+    ConfigTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Config
+        AttributeDefinitions:
+          - AttributeName: uuid
+            AttributeType: S
+        KeySchema:
+          - AttributeName: uuid
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
